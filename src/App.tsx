@@ -126,6 +126,22 @@ function App() {
     }
   }, [setPlaylists, playbackState?.currentSong?.id, setPlaybackState]);
 
+  const playSpecificSong = useCallback((song: Song, playlistId: string) => {
+    const playlist = playlists?.find(p => p.id === playlistId);
+    if (!playlist) return;
+
+    // Create a queue with just this song
+    setPlaybackState({
+      currentSong: song,
+      currentPlaylistId: playlistId,
+      queue: [song],
+      queueIndex: 0,
+      isPlaying: true,
+      isShuffled: false,
+      currentTime: 0,
+    });
+  }, [playlists, setPlaybackState]);
+
   const playGroup = useCallback((playlistId: string, shuffled = false) => {
     const playlist = playlists?.find(p => p.id === playlistId);
     if (!playlist || playlist.songs.length === 0) return;
@@ -406,6 +422,7 @@ function App() {
             onUpdateSongs={updateSongs}
             onAddSong={addSong}
             onDeleteSong={deleteSong}
+            onPlaySong={playSpecificSong}
           />
         )}
       </motion.div>

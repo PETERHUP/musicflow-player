@@ -15,6 +15,7 @@ interface PlaylistFormProps {
   onUpdateSongs: (playlistId: string, songs: Song[]) => void;
   onAddSong: (song: Song, playlistId: string) => void;
   onDeleteSong: (songId: string, playlistId: string) => void;
+  onPlaySong?: (song: Song, playlistId: string) => void;
 }
 
 interface EditingSong {
@@ -29,6 +30,7 @@ export function PlaylistForm({
   onUpdateSongs,
   onAddSong,
   onDeleteSong,
+  onPlaySong,
 }: PlaylistFormProps) {
   const [editingSongs, setEditingSongs] = useState<EditingSong[]>([]);
   const [newSong, setNewSong] = useState({
@@ -240,7 +242,7 @@ export function PlaylistForm({
                     >
                       <div className="flex items-center gap-3">
                         {/* Move Up/Down Controls */}
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 px-1">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -301,22 +303,28 @@ export function PlaylistForm({
                           ) : (
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-sm truncate">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onPlaySong?.(item.song, playlist.id)}
+                                  className="h-auto p-1 text-left justify-start font-medium text-sm truncate flex-1 hover:bg-primary/10"
+                                >
+                                  <Play size={14} className="mr-2 flex-shrink-0" />
                                   {item.song.customName || item.song.title}
-                                </h4>
-                                <Badge variant="outline" className="text-xs">
+                                </Button>
+                                <Badge variant="outline" className="text-xs flex-shrink-0">
                                   <Clock size={12} className="mr-1" />
                                   {formatTime(item.song.startTime)}
                                 </Badge>
                               </div>
-                              <p className="text-xs text-muted-foreground truncate">
+                              <p className="text-xs text-muted-foreground truncate ml-1">
                                 {item.song.title !== (item.song.customName || item.song.title) && item.song.title}
                               </p>
                               <a 
                                 href={item.song.url} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="text-xs text-blue-400 hover:underline truncate block"
+                                className="text-xs text-blue-400 hover:underline truncate block ml-1"
                               >
                                 {item.song.url}
                               </a>
@@ -325,13 +333,13 @@ export function PlaylistForm({
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 px-1">
                           {item.isEditing ? (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => saveSongEdit(index)}
-                              className="h-8 px-3"
+                              className="h-9 px-4"
                             >
                               Save
                             </Button>
@@ -340,9 +348,9 @@ export function PlaylistForm({
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleEdit(index)}
-                              className="h-8 w-8 p-0"
+                              className="h-9 w-10 p-0"
                             >
-                              <Pencil size={14} />
+                              <Pencil size={16} />
                             </Button>
                           )}
                           
@@ -350,9 +358,9 @@ export function PlaylistForm({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteSong(item.song.id, index)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            className="h-9 w-10 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </Button>
                         </div>
                       </div>
