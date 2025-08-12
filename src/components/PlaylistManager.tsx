@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Trash, Music } from '@phosphor-icons/react';
+import { Play, Trash, MusicNote } from '@phosphor-icons/react';
 import { Playlist, Song, formatTime } from '@/lib/types';
 import { motion } from 'framer-motion';
 
@@ -32,14 +32,14 @@ export const PlaylistManager: React.FC<PlaylistManagerProps> = ({
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Music />
+          <MusicNote />
           Playlists
         </CardTitle>
       </CardHeader>
       <CardContent>
         {playlists.length === 0 ? (
           <div className="text-center py-8">
-            <Music size={48} className="mx-auto text-muted-foreground mb-4" />
+            <MusicNote size={48} className="mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">No playlists yet</p>
             <p className="text-sm text-muted-foreground">
               Create your first playlist using the "Add New Song" panel

@@ -23,6 +23,11 @@ export interface PlaybackState {
   queueIndex: number;
 }
 
+export interface GroupOrder {
+  id: string;
+  position: number;
+}
+
 export const extractYouTubeId = (url: string): string | null => {
   const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const match = url.match(regex);

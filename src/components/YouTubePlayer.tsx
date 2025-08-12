@@ -7,6 +7,7 @@ interface YouTubePlayerProps {
   onEnded: () => void;
   onReady: () => void;
   onTimeUpdate: (currentTime: number) => void;
+  compact?: boolean;
 }
 
 declare global {
@@ -21,7 +22,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   isPlaying,
   onEnded,
   onReady,
-  onTimeUpdate
+  onTimeUpdate,
+  compact = false
 }) => {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,12 +48,14 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   useEffect(() => {
     if (apiReady && containerRef.current && !playerRef.current) {
+      const dimensions = compact ? { height: '72', width: '128' } : { height: '360', width: '640' };
+      
       playerRef.current = new window.YT.Player(containerRef.current, {
-        height: '360',
-        width: '640',
+        height: dimensions.height,
+        width: dimensions.width,
         playerVars: {
           autoplay: 0,
-          controls: 1,
+          controls: compact ? 0 : 1,
           rel: 0,
           showinfo: 0,
           modestbranding: 1,
@@ -69,7 +73,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         },
       });
     }
-  }, [apiReady, onReady, onEnded]);
+  }, [apiReady, onReady, onEnded, compact]);
 
   useEffect(() => {
     if (playerRef.current && playerReady && song && typeof playerRef.current.loadVideoById === 'function') {
@@ -109,8 +113,12 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   if (!song) {
     return (
-      <div className="flex items-center justify-center h-[360px] bg-card rounded-lg border">
-        <p className="text-muted-foreground">Select a song to play</p>
+      <div className={`flex items-center justify-center bg-card rounded-lg border ${
+        compact ? 'h-18 text-xs' : 'h-[360px]'
+      }`}>
+        <p className="text-muted-foreground">
+          {compact ? 'No song' : 'Select a song to play'}
+        </p>
       </div>
     );
   }

@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Toaster } from '@/components/ui/sonner';
-import { YouTubePlayer } from '@/components/YouTubePlayer';
-import { AddSongPanel } from '@/components/AddSongPanel';
-import { PlaybackControls } from '@/components/PlaybackControls';
-import { PlaylistManager } from '@/components/PlaylistManager';
-import { Song, Playlist, PlaybackState } from '@/lib/types';
+import { CompactPlayer } from '@/components/CompactPlayer';
+import { GroupButtons } from '@/components/GroupButtons';
+import { SportsMusicManager } from '@/components/SportsMusicManager';
+import { Song, Playlist, PlaybackState, GroupOrder } from '@/lib/types';
 import { motion } from 'framer-motion';
 
 function App() {
@@ -19,14 +18,6 @@ function App() {
     queue: [],
     queueIndex: 0,
   });
-
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (playlists.length > 0 && !selectedPlaylistId) {
-      setSelectedPlaylistId(playlists[0].id);
-    }
-  }, [playlists, selectedPlaylistId]);
 
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -44,230 +35,219 @@ function App() {
       songs: [],
     };
     
-    setPlaylists(current => [...current, newPlaylist]);
-    setSelectedPlaylistId(newPlaylist.id);
+    setPlaylists(current => current ? [...current, newPlaylist] : [newPlaylist]);
   }, [setPlaylists]);
 
   const addSong = useCallback((song: Song, playlistId: string) => {
     setPlaylists(current => 
-      current.map(playlist => 
+      current ? current.map(playlist => 
         playlist.id === playlistId 
           ? { ...playlist, songs: [...playlist.songs, song] }
           : playlist
-      )
+      ) : []
     );
   }, [setPlaylists]);
 
   const deleteSong = useCallback((songId: string, playlistId: string) => {
     setPlaylists(current => 
-      current.map(playlist => 
+      current ? current.map(playlist => 
         playlist.id === playlistId 
           ? { ...playlist, songs: playlist.songs.filter(s => s.id !== songId) }
           : playlist
-      )
+      ) : []
     );
 
-    if (playbackState.currentSong?.id === songId) {
-      setPlaybackState(current => ({
+    // If the deleted song is currently playing, reset playback
+    if (playbackState?.currentSong?.id === songId) {
+      setPlaybackState(current => current ? ({
         ...current,
         currentSong: null,
         isPlaying: false,
         queue: current.queue.filter(s => s.id !== songId),
-      }));
+      }) : {
+        currentSong: null,
+        currentPlaylistId: null,
+        isPlaying: false,
+        currentTime: 0,
+        isShuffled: false,
+        queue: [],
+        queueIndex: 0,
+      });
     }
-  }, [setPlaylists, playbackState.currentSong?.id, setPlaybackState]);
+  }, [setPlaylists, playbackState?.currentSong?.id, setPlaybackState]);
 
-  const playPlaylist = useCallback((playlistId: string) => {
-    const playlist = playlists.find(p => p.id === playlistId);
+  const playGroup = useCallback((playlistId: string, shuffled = false) => {
+    const playlist = playlists?.find(p => p.id === playlistId);
     if (!playlist || playlist.songs.length === 0) return;
 
-    const queue = playbackState.isShuffled ? shuffleArray(playlist.songs) : playlist.songs;
+    // If this is the current playlist, advance to next song
+    if (playbackState?.currentPlaylistId === playlistId && playbackState.queue.length > 0) {
+      const nextIndex = (playbackState.queueIndex + 1) % playbackState.queue.length;
+      const nextSong = playbackState.queue[nextIndex];
+      
+      setPlaybackState(current => current ? ({
+        ...current,
+        currentSong: nextSong,
+        queueIndex: nextIndex,
+        isPlaying: true,
+      }) : {
+        currentSong: nextSong,
+        currentPlaylistId: playlistId,
+        isPlaying: true,
+        currentTime: 0,
+        isShuffled: shuffled,
+        queue: [nextSong],
+        queueIndex: 0,
+      });
+      return;
+    }
+
+    // Otherwise start new queue
+    const queue = shuffled ? shuffleArray(playlist.songs) : playlist.songs;
     
     setPlaybackState(current => ({
-      ...current,
       currentSong: queue[0],
       currentPlaylistId: playlistId,
       queue,
       queueIndex: 0,
       isPlaying: true,
+      isShuffled: shuffled,
+      currentTime: 0,
     }));
-  }, [playlists, playbackState.isShuffled, setPlaybackState]);
+  }, [playlists, playbackState?.currentPlaylistId, playbackState?.queue, playbackState?.queueIndex, setPlaybackState]);
 
-  const playSong = useCallback((song: Song, playlistId: string) => {
-    const playlist = playlists.find(p => p.id === playlistId);
-    if (!playlist) return;
-
-    const queue = playbackState.isShuffled ? shuffleArray(playlist.songs) : playlist.songs;
-    const songIndex = queue.findIndex(s => s.id === song.id);
-    
-    setPlaybackState(current => ({
+  const togglePlay = useCallback(() => {
+    setPlaybackState(current => current ? ({
       ...current,
-      currentSong: song,
-      currentPlaylistId: playlistId,
-      queue,
-      queueIndex: songIndex,
-      isPlaying: true,
-    }));
-  }, [playlists, playbackState.isShuffled, setPlaybackState]);
+      isPlaying: !current.isPlaying,
+    }) : {
+      currentSong: null,
+      currentPlaylistId: null,
+      isPlaying: false,
+      currentTime: 0,
+      isShuffled: false,
+      queue: [],
+      queueIndex: 0,
+    });
+  }, [setPlaybackState]);
 
-  const selectSong = useCallback((song: Song) => {
-    const songIndex = playbackState.queue.findIndex(s => s.id === song.id);
-    
-    setPlaybackState(current => ({
-      ...current,
-      currentSong: song,
-      queueIndex: songIndex,
-      isPlaying: true,
-    }));
-  }, [playbackState.queue, setPlaybackState]);
+  const stopPlayback = useCallback(() => {
+    setPlaybackState({
+      isPlaying: false,
+      currentSong: null,
+      currentPlaylistId: null,
+      queue: [],
+      queueIndex: 0,
+      currentTime: 0,
+      isShuffled: false,
+    });
+  }, [setPlaybackState]);
 
-  const playNext = useCallback(() => {
-    if (playbackState.queue.length === 0) return;
+  const handleSongEnd = useCallback(() => {
+    if (!playbackState?.queue || playbackState.queue.length === 0) return;
     
     const nextIndex = (playbackState.queueIndex + 1) % playbackState.queue.length;
     const nextSong = playbackState.queue[nextIndex];
     
-    setPlaybackState(current => ({
+    setPlaybackState(current => current ? ({
       ...current,
       currentSong: nextSong,
       queueIndex: nextIndex,
       isPlaying: true,
-    }));
-  }, [playbackState.queue, playbackState.queueIndex, setPlaybackState]);
-
-  const togglePlay = useCallback(() => {
-    setPlaybackState(current => ({
-      ...current,
-      isPlaying: !current.isPlaying,
-    }));
-  }, [setPlaybackState]);
-
-  const toggleShuffle = useCallback(() => {
-    setPlaybackState(current => {
-      const newShuffled = !current.isShuffled;
-      
-      if (current.currentPlaylistId) {
-        const playlist = playlists.find(p => p.id === current.currentPlaylistId);
-        if (playlist) {
-          const newQueue = newShuffled ? shuffleArray(playlist.songs) : playlist.songs;
-          const currentSongIndex = newQueue.findIndex(s => s.id === current.currentSong?.id);
-          
-          return {
-            ...current,
-            isShuffled: newShuffled,
-            queue: newQueue,
-            queueIndex: currentSongIndex >= 0 ? currentSongIndex : 0,
-          };
-        }
-      }
-      
-      return {
-        ...current,
-        isShuffled: newShuffled,
-      };
+    }) : {
+      currentSong: nextSong,
+      currentPlaylistId: null,
+      isPlaying: true,
+      currentTime: 0,
+      isShuffled: false,
+      queue: [nextSong],
+      queueIndex: 0,
     });
-  }, [setPlaybackState, playlists]);
-
-  const reorderQueue = useCallback((newQueue: Song[]) => {
-    const currentSong = playbackState.currentSong;
-    const newIndex = currentSong ? newQueue.findIndex(s => s.id === currentSong.id) : 0;
-    
-    setPlaybackState(current => ({
-      ...current,
-      queue: newQueue,
-      queueIndex: newIndex >= 0 ? newIndex : 0,
-    }));
-  }, [playbackState.currentSong, setPlaybackState]);
+  }, [playbackState?.queue, playbackState?.queueIndex, setPlaybackState]);
 
   const updateCurrentTime = useCallback((time: number) => {
-    setPlaybackState(current => ({
+    setPlaybackState(current => current ? ({
       ...current,
       currentTime: time,
-    }));
+    }) : {
+      currentSong: null,
+      currentPlaylistId: null,
+      isPlaying: false,
+      currentTime: time,
+      isShuffled: false,
+      queue: [],
+      queueIndex: 0,
+    });
   }, [setPlaybackState]);
+
+  const reorderGroups = useCallback((newOrder: Playlist[]) => {
+    setPlaylists(newOrder);
+  }, [setPlaylists]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="container mx-auto p-6"
+        className="container mx-auto p-4 max-w-7xl"
       >
+        {/* Header */}
         <motion.header 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="mb-8"
+          className="mb-6"
         >
-          <h1 className="text-4xl font-bold text-center mb-2">YouTube Music Player</h1>
-          <p className="text-muted-foreground text-center">
-            Create playlists with custom start times and seamless playback
+          <h1 className="text-3xl font-bold text-center mb-2">Sports Music Controller</h1>
+          <p className="text-muted-foreground text-center text-sm">
+            Quick access music groups for game events • Drag to reorder • Click to play next song
           </p>
         </motion.header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Playlist Manager */}
+        {/* Compact Player - Top */}
+        <motion.div
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <CompactPlayer
+            currentSong={playbackState?.currentSong || null}
+            isPlaying={playbackState?.isPlaying || false}
+            onPlay={togglePlay}
+            onPause={togglePlay}
+            onStop={stopPlayback}
+            onEnded={handleSongEnd}
+            onTimeUpdate={updateCurrentTime}
+          />
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Group Buttons */}
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <PlaylistManager
-              playlists={playlists}
-              selectedPlaylistId={selectedPlaylistId}
-              currentSong={playbackState.currentSong}
-              onSelectPlaylist={setSelectedPlaylistId}
-              onPlayPlaylist={playPlaylist}
-              onPlaySong={playSong}
-              onDeleteSong={deleteSong}
-            />
-          </motion.div>
-
-          {/* Middle Column - Player and Controls */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="lg:col-span-1 space-y-6"
           >
-            <div className="bg-card rounded-lg p-6 border">
-              <YouTubePlayer
-                song={playbackState.currentSong}
-                isPlaying={playbackState.isPlaying}
-                onEnded={playNext}
-                onReady={() => {}}
-                onTimeUpdate={updateCurrentTime}
-              />
-            </div>
-
-            <PlaybackControls
-              currentSong={playbackState.currentSong}
-              isPlaying={playbackState.isPlaying}
-              isShuffled={playbackState.isShuffled}
-              queue={playbackState.queue}
-              currentTime={playbackState.currentTime}
-              onPlay={() => togglePlay()}
-              onPause={() => togglePlay()}
-              onNext={playNext}
-              onToggleShuffle={toggleShuffle}
-              onReorderQueue={reorderQueue}
-              onSelectSong={selectSong}
+            <GroupButtons
+              playlists={playlists || []}
+              currentPlaylistId={playbackState?.currentPlaylistId || null}
+              currentSong={playbackState?.currentSong || null}
+              onPlayGroup={playGroup}
+              onReorderGroups={reorderGroups}
             />
           </motion.div>
 
-          {/* Right Column - Add Song Panel */}
+          {/* Right Column - Music Manager */}
           <motion.div
             initial={{ x: 20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="lg:col-span-1"
           >
-            <AddSongPanel
-              playlists={playlists}
-              selectedPlaylistId={selectedPlaylistId}
+            <SportsMusicManager
+              playlists={playlists || []}
               onAddSong={addSong}
               onCreatePlaylist={createPlaylist}
-              onSelectPlaylist={setSelectedPlaylistId}
+              onDeleteSong={deleteSong}
             />
           </motion.div>
         </div>
