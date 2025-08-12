@@ -3,9 +3,10 @@ import { useKV } from '@github/spark/hooks';
 import { Toaster } from '@/components/ui/sonner';
 import { CompactPlayer } from '@/components/CompactPlayer';
 import { GroupCards } from '@/components/GroupCards';
-import { SportsMusicManager } from '@/components/SportsMusicManager';
+import { HamburgerMenu } from '@/components/HamburgerMenu';
 import { EditableGrid } from '@/components/EditableGrid';
 import { Song, Playlist, PlaybackState, LayoutSettings, AppSettings } from '@/lib/types';
+import { defaultPlaylists } from '@/lib/defaultSongs';
 import { motion } from 'framer-motion';
 
 function App() {
@@ -28,6 +29,27 @@ function App() {
     },
   });
   const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize with default playlists if none exist and ensure backward compatibility
+  useEffect(() => {
+    if (!isInitialized && playlists !== undefined) {
+      if (!playlists || playlists.length === 0) {
+        setPlaylists(defaultPlaylists);
+      } else {
+        // Migrate existing playlists to ensure they have playedSongs array
+        const updatedPlaylists = playlists.map(playlist => ({
+          ...playlist,
+          playedSongs: playlist.playedSongs || [],
+          image: playlist.image || '🎵'
+        }));
+        if (JSON.stringify(updatedPlaylists) !== JSON.stringify(playlists)) {
+          setPlaylists(updatedPlaylists);
+        }
+      }
+      setIsInitialized(true);
+    }
+  }, [playlists, setPlaylists, isInitialized]);
 
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -38,11 +60,13 @@ function App() {
     return shuffled;
   };
 
-  const createPlaylist = useCallback((name: string) => {
+  const createPlaylist = useCallback((name: string, image?: string) => {
     const newPlaylist: Playlist = {
       id: Date.now().toString(),
       name,
       songs: [],
+      image,
+      playedSongs: [],
     };
     
     setPlaylists(current => current ? [...current, newPlaylist] : [newPlaylist]);
@@ -109,6 +133,20 @@ function App() {
       const nextIndex = (playbackState.queueIndex + 1) % playbackState.queue.length;
       const nextSong = playbackState.queue[nextIndex];
       
+      // Mark current song as played
+      if (playbackState.currentSong) {
+        setPlaylists(current => 
+          current ? current.map(p => 
+            p.id === playlistId 
+              ? { 
+                  ...p, 
+                  playedSongs: [...(p.playedSongs || []), playbackState.currentSong!.id].filter((id, index, arr) => arr.indexOf(id) === index)
+                } 
+              : p
+          ) : []
+        );
+      }
+      
       setPlaybackState(current => current ? ({
         ...current,
         currentSong: nextSong,
@@ -126,8 +164,21 @@ function App() {
       return;
     }
 
+    // Reset played songs if all have been played
+    const unplayedSongs = playlist.songs.filter(song => !playlist.playedSongs?.includes(song.id));
+    let songsToPlay = unplayedSongs.length > 0 ? unplayedSongs : playlist.songs;
+    
+    // If we reset the playlist, clear played songs
+    if (unplayedSongs.length === 0) {
+      setPlaylists(current => 
+        current ? current.map(p => 
+          p.id === playlistId ? { ...p, playedSongs: [] } : p
+        ) : []
+      );
+    }
+
     // Otherwise start new queue
-    const queue = shuffled ? shuffleArray(playlist.songs) : playlist.songs;
+    const queue = shuffled ? shuffleArray(songsToPlay) : songsToPlay;
     
     setPlaybackState(current => ({
       currentSong: queue[0],
@@ -138,7 +189,7 @@ function App() {
       isShuffled: shuffled,
       currentTime: 0,
     }));
-  }, [playlists, playbackState?.currentPlaylistId, playbackState?.queue, playbackState?.queueIndex, setPlaybackState]);
+  }, [playlists, playbackState?.currentPlaylistId, playbackState?.queue, playbackState?.queueIndex, playbackState?.currentSong, setPlaybackState, setPlaylists]);
 
   const togglePlay = useCallback(() => {
     setPlaybackState(current => current ? ({
@@ -170,6 +221,20 @@ function App() {
   const handleSongEnd = useCallback(() => {
     if (!playbackState?.queue || playbackState.queue.length === 0) return;
     
+    // Mark current song as played
+    if (playbackState.currentSong && playbackState.currentPlaylistId) {
+      setPlaylists(current => 
+        current ? current.map(p => 
+          p.id === playbackState.currentPlaylistId 
+            ? { 
+                ...p, 
+                playedSongs: [...(p.playedSongs || []), playbackState.currentSong!.id].filter((id, index, arr) => arr.indexOf(id) === index)
+              } 
+            : p
+        ) : []
+      );
+    }
+    
     const nextIndex = (playbackState.queueIndex + 1) % playbackState.queue.length;
     const nextSong = playbackState.queue[nextIndex];
     
@@ -187,7 +252,7 @@ function App() {
       queue: [nextSong],
       queueIndex: 0,
     });
-  }, [playbackState?.queue, playbackState?.queueIndex, setPlaybackState]);
+  }, [playbackState?.queue, playbackState?.queueIndex, playbackState?.currentSong, playbackState?.currentPlaylistId, setPlaybackState, setPlaylists]);
 
   const updateCurrentTime = useCallback((time: number) => {
     setPlaybackState(current => current ? ({
@@ -229,20 +294,29 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Hamburger Menu */}
+      <HamburgerMenu
+        playlists={playlists || []}
+        onAddSong={addSong}
+        onAddSongs={addSongs}
+        onCreatePlaylist={createPlaylist}
+        onDeleteSong={deleteSong}
+      />
+
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="container mx-auto p-4 max-w-7xl"
+        className="container mx-auto p-4 max-w-6xl"
       >
         {/* Header */}
         <motion.header 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="mb-6"
+          className="mb-6 ml-12" // Add left margin for hamburger menu
         >
           <h1 className="text-3xl font-bold text-center mb-2">Sports Music Controller</h1>
           <p className="text-muted-foreground text-center text-sm">
-            Quick access music groups for game events • Drag to reorder • Click to play next song
+            Quick access music groups for game events • Click cards to play next song • Drag to reorder
           </p>
         </motion.header>
 
@@ -264,45 +338,28 @@ function App() {
           />
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Group Buttons */}
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <GroupCards
-              playlists={playlists || []}
-              currentPlaylistId={playbackState?.currentPlaylistId || null}
-              currentSong={playbackState?.currentSong || null}
-              layoutSettings={appSettings?.layout || {
-                cardsPerRow: 3,
-                cardSize: 'medium',
-                showSongCount: true,
-                showCurrentSong: true,
-              }}
-              onPlayGroup={playGroup}
-              onReorderGroups={reorderGroups}
-              onLayoutChange={handleLayoutChange}
-              onEditGroup={handleEditGroup}
-            />
-          </motion.div>
-
-          {/* Right Column - Music Manager */}
-          <motion.div
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <SportsMusicManager
-              playlists={playlists || []}
-              onAddSong={addSong}
-              onAddSongs={addSongs}
-              onCreatePlaylist={createPlaylist}
-              onDeleteSong={deleteSong}
-            />
-          </motion.div>
-        </div>
+        {/* Music Group Cards */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <GroupCards
+            playlists={playlists || []}
+            currentPlaylistId={playbackState?.currentPlaylistId || null}
+            currentSong={playbackState?.currentSong || null}
+            layoutSettings={appSettings?.layout || {
+              cardsPerRow: 3,
+              cardSize: 'medium',
+              showSongCount: true,
+              showCurrentSong: true,
+            }}
+            onPlayGroup={playGroup}
+            onReorderGroups={reorderGroups}
+            onLayoutChange={handleLayoutChange}
+            onEditGroup={handleEditGroup}
+          />
+        </motion.div>
 
         {/* Editable Grid Modal */}
         {editingPlaylist && (

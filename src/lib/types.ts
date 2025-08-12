@@ -11,6 +11,8 @@ export interface Playlist {
   id: string;
   name: string;
   songs: Song[];
+  image?: string;
+  playedSongs: string[]; // Track which songs have been played in current session
 }
 
 export interface PlaybackState {

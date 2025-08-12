@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shuffle, DotsSixVertical, Play, Settings, Edit } from '@phosphor-icons/react';
+import { Shuffle, DotsSixVertical, Settings, Edit } from '@phosphor-icons/react';
 import { Playlist, Song, LayoutSettings } from '@/lib/types';
 import { motion, Reorder } from 'framer-motion';
 
@@ -40,16 +40,20 @@ export function GroupCards({
     onReorderGroups(newOrder);
   };
 
+  const getUnplayedCount = (playlist: Playlist) => {
+    const unplayed = playlist.songs.filter(song => !playlist.playedSongs?.includes(song.id));
+    return unplayed.length;
+  };
+
   const getGroupColor = (playlistName: string) => {
     const colors = {
       'goal': 'bg-green-500/20 border-green-500/30 text-green-400',
       'penalty': 'bg-red-500/20 border-red-500/30 text-red-400',
-      'warmup': 'bg-orange-500/20 border-orange-500/30 text-orange-400',
+      'power play': 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',
       'intermission': 'bg-blue-500/20 border-blue-500/30 text-blue-400',
-      'pregame': 'bg-purple-500/20 border-purple-500/30 text-purple-400',
-      'postgame': 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400',
-      'timeout': 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',
-      'celebration': 'bg-pink-500/20 border-pink-500/30 text-pink-400',
+      'warm up': 'bg-orange-500/20 border-orange-500/30 text-orange-400',
+      'pre-game': 'bg-purple-500/20 border-purple-500/30 text-purple-400',
+      'post-game': 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400',
     };
     
     const name = playlistName.toLowerCase();
@@ -61,22 +65,22 @@ export function GroupCards({
 
   const getCardSize = () => {
     switch (layoutSettings.cardSize) {
-      case 'small': return 'h-24';
-      case 'medium': return 'h-32';
-      case 'large': return 'h-40';
-      default: return 'h-32';
+      case 'small': return 'aspect-square min-h-[120px]';
+      case 'medium': return 'aspect-square min-h-[160px]';
+      case 'large': return 'aspect-square min-h-[200px]';
+      default: return 'aspect-square min-h-[160px]';
     }
   };
 
   const getGridCols = () => {
     switch (layoutSettings.cardsPerRow) {
       case 1: return 'grid-cols-1';
-      case 2: return 'grid-cols-1 md:grid-cols-2';
-      case 3: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
-      case 4: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
-      case 5: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
-      case 6: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6';
-      default: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+      case 2: return 'grid-cols-1 sm:grid-cols-2';
+      case 3: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+      case 4: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+      case 5: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
+      case 6: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6';
+      default: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
     }
   };
 
@@ -196,98 +200,100 @@ export function GroupCards({
         onReorder={handleReorder}
         className={`grid ${getGridCols()} gap-4`}
       >
-        {orderedPlaylists.map((playlist) => (
-          <Reorder.Item
-            key={playlist.id}
-            value={playlist}
-            className="touch-none"
-            whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)" }}
-          >
-            <Card
-              className={`${getCardSize()} transition-all duration-200 hover:scale-[1.02] cursor-grab active:cursor-grabbing relative group ${
-                currentPlaylistId === playlist.id
-                  ? 'ring-2 ring-primary/50 bg-primary/10'
-                  : 'hover:bg-card/80'
-              }`}
+        {orderedPlaylists.map((playlist) => {
+          const unplayedCount = getUnplayedCount(playlist);
+          const totalCount = playlist.songs.length;
+          
+          return (
+            <Reorder.Item
+              key={playlist.id}
+              value={playlist}
+              className="touch-none"
+              whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)" }}
             >
-              {/* Drag Handle */}
-              <div className="absolute top-2 left-2 text-muted-foreground/50 hover:text-foreground transition-colors z-10">
-                <DotsSixVertical size={14} />
-              </div>
-
-              {/* Edit Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEditGroup(playlist.id)}
-                className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              <Card
+                className={`${getCardSize()} transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group ${
+                  currentPlaylistId === playlist.id
+                    ? 'ring-2 ring-primary/50 bg-primary/10'
+                    : 'hover:bg-card/80'
+                } ${getGroupColor(playlist.name)}`}
+                onClick={() => onPlayGroup(playlist.id)}
               >
-                <Edit size={12} />
-              </Button>
+                {/* Drag Handle */}
+                <div className="absolute top-2 left-2 text-muted-foreground/50 hover:text-foreground transition-colors z-10 cursor-grab">
+                  <DotsSixVertical size={16} />
+                </div>
 
-              <div className="p-4 h-full flex flex-col justify-between">
-                {/* Group Header */}
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between">
-                    <h3 className="font-semibold text-lg truncate pr-2">
-                      {playlist.name}
-                    </h3>
+                {/* Edit Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditGroup(playlist.id);
+                  }}
+                  className="absolute top-2 right-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <Edit size={14} />
+                </Button>
+
+                {/* Shuffle Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPlayGroup(playlist.id, true);
+                  }}
+                  disabled={playlist.songs.length === 0}
+                  className="absolute top-2 right-10 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  title="Shuffle and play"
+                >
+                  <Shuffle size={14} />
+                </Button>
+
+                <div className="p-4 h-full flex flex-col justify-center items-center text-center">
+                  {/* Group Image/Icon */}
+                  <div className="text-4xl md:text-5xl mb-3">
+                    {playlist.image || '🎵'}
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    {layoutSettings.showSongCount && (
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${getGroupColor(playlist.name)}`}
-                      >
-                        {playlist.songs.length} songs
-                      </Badge>
-                    )}
-                  </div>
+                  {/* Group Name */}
+                  <h3 className="font-bold text-lg mb-2 truncate w-full">
+                    {playlist.name}
+                  </h3>
                   
+                  {/* Progress Display */}
+                  <div className="space-y-1">
+                    <div className="text-sm font-semibold">
+                      {unplayedCount} / {totalCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      unplayed songs
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                      <div 
+                        className="bg-current h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: totalCount > 0 ? `${((totalCount - unplayedCount) / totalCount) * 100}%` : '0%' 
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Current Song Display */}
                   {layoutSettings.showCurrentSong && currentPlaylistId === playlist.id && currentSong && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      ♪ {currentSong.title}
-                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground truncate w-full">
+                      ♪ {currentSong.title.length > 20 ? `${currentSong.title.substring(0, 20)}...` : currentSong.title}
+                    </div>
                   )}
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-center gap-2 mt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlayGroup(playlist.id, true);
-                    }}
-                    disabled={playlist.songs.length === 0}
-                    className="flex-1 h-8 text-xs"
-                    title="Shuffle and play"
-                  >
-                    <Shuffle size={14} className="mr-1" />
-                    Shuffle
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant={currentPlaylistId === playlist.id ? "default" : "secondary"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlayGroup(playlist.id);
-                    }}
-                    disabled={playlist.songs.length === 0}
-                    className="flex-1 h-8 text-xs"
-                    title="Play next song in group"
-                  >
-                    <Play size={14} weight="fill" className="mr-1" />
-                    Play
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </Reorder.Item>
-        ))}
+              </Card>
+            </Reorder.Item>
+          );
+        })}
       </Reorder.Group>
 
       {orderedPlaylists.length === 0 && (
@@ -298,7 +304,7 @@ export function GroupCards({
         >
           <div className="max-w-md mx-auto">
             <p className="text-sm mb-2">No music groups created yet</p>
-            <p className="text-xs">Create groups like "Goal", "Penalty", "Warmup" etc. using the Music Manager</p>
+            <p className="text-xs">Use the hamburger menu to access Music Manager and create groups</p>
           </div>
         </motion.div>
       )}

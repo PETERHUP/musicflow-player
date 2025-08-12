@@ -18,20 +18,21 @@ interface SportsMusicManagerProps {
   playlists: Playlist[];
   onAddSong: (song: Song, playlistId: string) => void;
   onAddSongs: (songs: Song[], playlistId: string) => void;
-  onCreatePlaylist: (name: string) => void;
+  onCreatePlaylist: (name: string, image?: string) => void;
   onDeleteSong: (songId: string, playlistId: string) => void;
 }
 
 const SPORTS_GROUPS = [
-  'Goal',
-  'Penalty',
-  'Warmup',
-  'Intermission',
-  'Pregame',
-  'Postgame',
-  'Timeout',
-  'Celebration',
-  'Custom'
+  { name: 'Goal', emoji: '🥅' },
+  { name: 'Penalty', emoji: '⚠️' },
+  { name: 'Power Play', emoji: '⚡' },
+  { name: 'Intermission', emoji: '☕' },
+  { name: 'Warm Up', emoji: '🔥' },
+  { name: 'Pre-Game', emoji: '🏒' },
+  { name: 'Post-Game', emoji: '🏆' },
+  { name: 'Timeout', emoji: '⏸️' },
+  { name: 'Celebration', emoji: '🎉' },
+  { name: 'Custom', emoji: '🎵' }
 ];
 
 export function SportsMusicManager({
@@ -43,6 +44,7 @@ export function SportsMusicManager({
 }: SportsMusicManagerProps) {
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('Goal');
+  const [selectedEmoji, setSelectedEmoji] = useState('🥅');
   const [songUrl, setSongUrl] = useState('');
   const [songTitle, setSongTitle] = useState('');
   const [startTime, setStartTime] = useState('0:00');
@@ -59,9 +61,10 @@ export function SportsMusicManager({
       return;
     }
 
-    onCreatePlaylist(name);
+    onCreatePlaylist(name, selectedEmoji);
     setNewGroupName('');
     setSelectedGroup('Goal');
+    setSelectedEmoji('🥅');
     toast.success(`Created group: ${name}`);
   };
 
@@ -121,16 +124,34 @@ export function SportsMusicManager({
             <div className="space-y-3">
               <div>
                 <Label htmlFor="group-type">Group Type</Label>
-                <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <Select value={selectedGroup} onValueChange={(value) => {
+                  setSelectedGroup(value);
+                  const group = SPORTS_GROUPS.find(g => g.name === value);
+                  if (group) setSelectedEmoji(group.emoji);
+                }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {SPORTS_GROUPS.map(group => (
-                      <SelectItem key={group} value={group}>{group}</SelectItem>
+                      <SelectItem key={group.name} value={group.name}>
+                        {group.emoji} {group.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="group-emoji">Group Icon</Label>
+                <Input
+                  id="group-emoji"
+                  value={selectedEmoji}
+                  onChange={(e) => setSelectedEmoji(e.target.value)}
+                  placeholder="🎵"
+                  className="text-2xl text-center h-12"
+                  maxLength={2}
+                />
               </div>
 
               {selectedGroup === 'Custom' && (
