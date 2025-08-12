@@ -353,7 +353,10 @@ function App() {
           animate={{ y: 0, opacity: 1 }}
           className="mb-6 ml-12" // Add left margin for hamburger menu
         >
-          <h1 className="text-3xl font-bold text-center mb-2">Sports Music Controller</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="text-4xl bg-gradient-to-br from-accent to-primary rounded-lg p-2 shadow-lg">🎧</div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">GameDay Beats</h1>
+          </div>
           <p className="text-muted-foreground text-center text-sm">
             Quick access music groups for game events • Click cards to play next song • Long press for playlist editor • Drag to reorder
           </p>
@@ -426,6 +429,16 @@ function App() {
           />
         )}
       </motion.div>
+
+      {/* Copyright Footer */}
+      <motion.footer 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="mt-12 pb-6 text-center text-xs text-muted-foreground border-t border-border/30 pt-4"
+      >
+        <p>Copyright © 2025 CViewsIt ® All rights reserved</p>
+      </motion.footer>
 
       <Toaster position="bottom-right" />
     </div>

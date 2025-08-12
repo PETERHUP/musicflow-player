@@ -264,7 +264,7 @@ export function GroupCards({
                 stiffness: 400,
                 damping: 25
               }}
-              className="touch-none"
+              className="touch-none my-1"
               style={{ 
                 gridColumn: 'auto',
                 gridRow: 'auto'

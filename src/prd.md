@@ -1,4 +1,4 @@
-# Sports Music Controller - Product Requirements Document
+# GameDay Beats - Product Requirements Document
 
 ## Core Purpose & Success
 - **Mission Statement**: A specialized YouTube music controller designed for sports teams and event timekeepers to quickly trigger different music groups based on game events
