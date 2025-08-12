@@ -5,6 +5,7 @@ import { CompactPlayer } from '@/components/CompactPlayer';
 import { GroupCards } from '@/components/GroupCards';
 import { HamburgerMenu } from '@/components/HamburgerMenu';
 import { EditableGrid } from '@/components/EditableGrid';
+import { PlaylistForm } from '@/components/PlaylistForm';
 import { Song, Playlist, PlaybackState, LayoutSettings, AppSettings } from '@/lib/types';
 import { defaultPlaylists } from '@/lib/defaultSongs';
 import { motion } from 'framer-motion';
@@ -29,6 +30,7 @@ function App() {
     },
   });
   const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
+  const [playlistFormId, setPlaylistFormId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize with default playlists if none exist and ensure backward compatibility
@@ -292,12 +294,24 @@ function App() {
     setEditingPlaylistId(playlistId);
   }, []);
 
+  const handleLongPressGroup = useCallback((playlistId: string) => {
+    setPlaylistFormId(playlistId);
+  }, []);
+
   const closeEditGrid = useCallback(() => {
     setEditingPlaylistId(null);
   }, []);
 
+  const closePlaylistForm = useCallback(() => {
+    setPlaylistFormId(null);
+  }, []);
+
   const editingPlaylist = editingPlaylistId 
     ? playlists?.find(p => p.id === editingPlaylistId) 
+    : null;
+
+  const playlistFormPlaylist = playlistFormId 
+    ? playlists?.find(p => p.id === playlistFormId) 
     : null;
 
   return (
@@ -325,7 +339,7 @@ function App() {
         >
           <h1 className="text-3xl font-bold text-center mb-2">Sports Music Controller</h1>
           <p className="text-muted-foreground text-center text-sm">
-            Quick access music groups for game events • Click cards to play next song • Drag to reorder
+            Quick access music groups for game events • Click cards to play next song • Long press for playlist editor • Drag to reorder
           </p>
         </motion.header>
 
@@ -367,6 +381,7 @@ function App() {
             onReorderGroups={reorderGroups}
             onLayoutChange={handleLayoutChange}
             onEditGroup={handleEditGroup}
+            onLongPressGroup={handleLongPressGroup}
           />
         </motion.div>
 
@@ -376,6 +391,18 @@ function App() {
             playlist={editingPlaylist}
             isOpen={!!editingPlaylistId}
             onClose={closeEditGrid}
+            onUpdateSongs={updateSongs}
+            onAddSong={addSong}
+            onDeleteSong={deleteSong}
+          />
+        )}
+
+        {/* Playlist Form Modal */}
+        {playlistFormPlaylist && (
+          <PlaylistForm
+            playlist={playlistFormPlaylist}
+            isOpen={!!playlistFormId}
+            onClose={closePlaylistForm}
             onUpdateSongs={updateSongs}
             onAddSong={addSong}
             onDeleteSong={deleteSong}

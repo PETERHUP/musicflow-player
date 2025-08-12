@@ -5,7 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Play, Pause, Square, SpeakerHigh, SpeakerX, Microphone } from '@phosphor-icons/react';
 import { Song } from '@/lib/types';
 import { YouTubePlayer } from '@/components/YouTubePlayer';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CompactPlayerProps {
   currentSong: Song | null;
@@ -33,12 +33,17 @@ export function CompactPlayer({
   const [wasPausedByMic, setWasPausedByMic] = useState(false);
   const micTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   // Clean up microphone stream on unmount
   useEffect(() => {
     return () => {
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
       if (micTimeoutRef.current) {
         clearTimeout(micTimeoutRef.current);
@@ -51,7 +56,10 @@ export function CompactPlayer({
     if (value[0] > 0 && isMuted) {
       setIsMuted(false);
     }
-    // Don't auto-close the slider on change, let user close it manually or via timer
+    // Auto-close after 2 seconds of no changes
+    setTimeout(() => {
+      setShowVolumeSlider(false);
+    }, 2000);
   };
 
   const toggleVolumeSlider = () => {
@@ -78,6 +86,14 @@ export function CompactPlayer({
         // Request microphone access
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaStreamRef.current = stream;
+        
+        // Create audio context for speaker output
+        audioContextRef.current = new AudioContext();
+        micSourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
+        
+        // Connect microphone to speakers
+        micSourceRef.current.connect(audioContextRef.current.destination);
+        
         setIsMicActive(true);
         
         // Pause music if it's playing
@@ -90,11 +106,22 @@ export function CompactPlayer({
         // You could show a toast here if needed
       }
     } else {
-      // Stop microphone
+      // Stop microphone and audio context
+      if (micSourceRef.current) {
+        micSourceRef.current.disconnect();
+        micSourceRef.current = null;
+      }
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
         mediaStreamRef.current = null;
       }
+      
       setIsMicActive(false);
       
       // Resume music after delay if it was paused by mic
@@ -113,49 +140,52 @@ export function CompactPlayer({
       className="w-full"
     >
       {/* Volume Slider Popup - Full Width and More Visible */}
-      {showVolumeSlider && (
-        <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="fixed top-20 left-4 right-4 z-[100] p-8 bg-card/95 backdrop-blur-lg border-2 border-primary/50 rounded-xl shadow-2xl"
-          style={{ maxWidth: '600px', margin: '0 auto', left: '50%', transform: 'translateX(-50%)' }}
-        >
-          <div className="flex items-center gap-6">
-            <SpeakerHigh size={32} className="text-primary flex-shrink-0" />
-            <div className="flex-1">
-              <Slider
-                value={volume}
-                onValueChange={handleVolumeChange}
-                max={100}
-                step={1}
-                className="w-full h-6 cursor-pointer"
-              />
+      <AnimatePresence>
+        {showVolumeSlider && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-24 left-0 right-0 z-[200] mx-4"
+          >
+            <div className="max-w-2xl mx-auto p-6 bg-card/98 backdrop-blur-xl border-2 border-primary/60 rounded-2xl shadow-2xl">
+              <div className="flex items-center gap-6">
+                <SpeakerHigh size={36} className="text-primary flex-shrink-0" />
+                <div className="flex-1">
+                  <Slider
+                    value={volume}
+                    onValueChange={handleVolumeChange}
+                    max={100}
+                    step={1}
+                    className="w-full h-8 cursor-pointer"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleMute}
+                    className="h-[48px] w-28 border-2 text-sm font-medium"
+                  >
+                    {isMuted ? <SpeakerX size={22} /> : <SpeakerHigh size={22} />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowVolumeSlider(false)}
+                    className="h-[48px] w-24 border-2 text-sm font-medium"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              </div>
+              <div className="text-xl text-muted-foreground mt-4 text-center font-bold">
+                Volume: {isMuted ? 0 : volume[0]}% {isMicActive && '• Microphone Active'}
+              </div>
             </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleMute}
-                className="h-[45px] w-24 border-2 text-sm font-medium"
-              >
-                {isMuted ? <SpeakerX size={20} /> : <SpeakerHigh size={20} />}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowVolumeSlider(false)}
-                className="h-[45px] w-20 border-2 text-sm font-medium"
-              >
-                ✕
-              </Button>
-            </div>
-          </div>
-          <div className="text-lg text-muted-foreground mt-4 text-center font-semibold">
-            Volume: {isMuted ? 0 : volume[0]}% {isMicActive && '• Microphone Active'}
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top Control Bar - Increased height to 40px */}
       <div className="flex items-center justify-between gap-4 mb-3 h-[40px]">

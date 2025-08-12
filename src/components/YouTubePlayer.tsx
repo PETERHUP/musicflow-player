@@ -94,10 +94,10 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           if (isPlaying && typeof playerRef.current.playVideo === 'function') {
             playerRef.current.playVideo();
           }
-        }, 1000); // Increased delay to ensure video is loaded
+        }, 1500); // Increased delay to ensure video is fully loaded
       }
     }
-  }, [song?.id, playerReady, volume]); // Changed dependency to song.id only
+  }, [song?.id, playerReady, volume, isPlaying]); // Added isPlaying to dependencies
 
   // Separate effect to handle immediate play when isPlaying becomes true with an existing song
   useEffect(() => {

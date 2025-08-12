@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ interface GroupCardsProps {
   onReorderGroups: (newOrder: Playlist[]) => void;
   onLayoutChange: (settings: LayoutSettings) => void;
   onEditGroup: (playlistId: string) => void;
+  onLongPressGroup: (playlistId: string) => void;
 }
 
 export function GroupCards({
@@ -27,9 +28,12 @@ export function GroupCards({
   onReorderGroups,
   onLayoutChange,
   onEditGroup,
+  onLongPressGroup,
 }: GroupCardsProps) {
   const [orderedPlaylists, setOrderedPlaylists] = useState(playlists);
   const [showSettings, setShowSettings] = useState(false);
+  const [longPressingId, setLongPressingId] = useState<string | null>(null);
+  const longPressTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   React.useEffect(() => {
     setOrderedPlaylists(playlists);
@@ -81,6 +85,52 @@ export function GroupCards({
       case 5: return 'grid-cols-3 sm:grid-cols-5 justify-items-center gap-2';
       case 6: return 'grid-cols-3 sm:grid-cols-6 justify-items-center gap-2';
       default: return 'grid-cols-3 justify-items-center gap-4';
+    }
+  };
+
+  const handleMouseDown = (playlistId: string) => {
+    setLongPressingId(playlistId);
+    const timer = setTimeout(() => {
+      onLongPressGroup(playlistId);
+      setLongPressingId(null);
+    }, 800); // 800ms long press
+    
+    longPressTimers.current.set(playlistId, timer);
+  };
+
+  const handleMouseUp = (playlistId: string) => {
+    setLongPressingId(null);
+    const timer = longPressTimers.current.get(playlistId);
+    if (timer) {
+      clearTimeout(timer);
+      longPressTimers.current.delete(playlistId);
+    }
+  };
+
+  const handleTouchStart = (playlistId: string) => {
+    setLongPressingId(playlistId);
+    const timer = setTimeout(() => {
+      onLongPressGroup(playlistId);
+      setLongPressingId(null);
+    }, 800); // 800ms long press
+    
+    longPressTimers.current.set(playlistId, timer);
+  };
+
+  const handleTouchEnd = (playlistId: string) => {
+    setLongPressingId(null);
+    const timer = longPressTimers.current.get(playlistId);
+    if (timer) {
+      clearTimeout(timer);
+      longPressTimers.current.delete(playlistId);
+    }
+  };
+
+  const handleClick = (playlistId: string) => {
+    // Only trigger play if no long press timer is active
+    const timer = longPressTimers.current.get(playlistId);
+    if (!timer) {
+      onPlayGroup(playlistId);
     }
   };
 
@@ -194,7 +244,7 @@ export function GroupCards({
       )}
 
       {/* Group Cards Grid */}
-      <div className={`grid ${getGridCols()} gap-4`}>
+      <div className={`grid ${getGridCols()} auto-rows-max`}>
         {orderedPlaylists.map((playlist, index) => {
           const unplayedCount = getUnplayedCount(playlist);
           const totalCount = playlist.songs.length;
@@ -203,25 +253,38 @@ export function GroupCards({
             <motion.div
               key={playlist.id}
               layout
+              layoutId={playlist.id}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               whileHover={{ scale: 1.02 }}
               transition={{ 
-                layout: { duration: 0.2, ease: "easeInOut" },
+                layout: { duration: 0.3, ease: "easeInOut" },
                 type: "spring",
-                stiffness: 600,
-                damping: 30
+                stiffness: 400,
+                damping: 25
               }}
               className="touch-none"
+              style={{ 
+                gridColumn: 'auto',
+                gridRow: 'auto'
+              }}
             >
               <Card
-                className={`${getCardSize()} transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group ${
-                  currentPlaylistId === playlist.id
+                className={`${getCardSize()} transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group select-none ${
+                  longPressingId === playlist.id
+                    ? 'ring-4 ring-accent/70 bg-accent/20 scale-[0.98]'
+                    : currentPlaylistId === playlist.id
                     ? 'ring-2 ring-primary/50 bg-primary/10'
                     : 'hover:bg-card/80'
                 } ${getGroupColor(playlist.name)}`}
-                onClick={() => onPlayGroup(playlist.id)}
+                onClick={() => handleClick(playlist.id)}
+                onMouseDown={() => handleMouseDown(playlist.id)}
+                onMouseUp={() => handleMouseUp(playlist.id)}
+                onMouseLeave={() => handleMouseUp(playlist.id)}
+                onTouchStart={() => handleTouchStart(playlist.id)}
+                onTouchEnd={() => handleTouchEnd(playlist.id)}
+                onTouchCancel={() => handleTouchEnd(playlist.id)}
               >
                 {/* Drag Handle */}
                 <div className="absolute top-2 left-2 text-muted-foreground/50 hover:text-foreground transition-colors z-10 cursor-grab">
