@@ -51,10 +51,18 @@ export function CompactPlayer({
     if (value[0] > 0 && isMuted) {
       setIsMuted(false);
     }
+    // Close the slider after volume change
+    setTimeout(() => {
+      setShowVolumeSlider(false);
+    }, 500);
   };
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+    // Close the slider after mute toggle
+    setTimeout(() => {
+      setShowVolumeSlider(false);
+    }, 500);
   };
 
   const handleMicToggle = async () => {
@@ -103,73 +111,73 @@ export function CompactPlayer({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="mb-4 p-4 bg-card border rounded-lg"
+          className="mb-4 p-6 bg-card border-2 border-primary/30 rounded-lg shadow-lg"
         >
           <div className="flex items-center gap-4">
-            <SpeakerHigh size={20} className="text-muted-foreground flex-shrink-0" />
+            <SpeakerHigh size={24} className="text-primary flex-shrink-0" />
             <Slider
               value={volume}
               onValueChange={handleVolumeChange}
               max={100}
               step={1}
-              className="flex-1"
+              className="flex-1 h-3"
             />
             <Button
               variant="outline"
               size="sm"
               onClick={toggleMute}
-              className="h-8 w-16 flex-shrink-0"
+              className="h-[40px] w-20 flex-shrink-0 border-[6px] text-sm font-medium"
             >
-              {isMuted ? <SpeakerX size={16} /> : <SpeakerHigh size={16} />}
+              {isMuted ? <SpeakerX size={18} /> : <SpeakerHigh size={18} />}
             </Button>
             <Button
               variant={isMicActive ? "default" : "outline"}
               size="sm"
               onClick={handleMicToggle}
-              className={`h-8 w-16 flex-shrink-0 ${isMicActive ? 'bg-red-500 hover:bg-red-600' : ''}`}
+              className={`h-[40px] w-20 flex-shrink-0 border-[6px] text-sm font-medium ${isMicActive ? 'bg-red-500 hover:bg-red-600' : ''}`}
             >
-              <Microphone size={16} weight={isMicActive ? "fill" : "regular"} />
+              <Microphone size={18} weight={isMicActive ? "fill" : "regular"} />
             </Button>
           </div>
-          <div className="text-xs text-muted-foreground mt-2 text-center">
+          <div className="text-sm text-muted-foreground mt-3 text-center font-medium">
             Volume: {isMuted ? 0 : volume[0]}% {isMicActive && '• Microphone Active'}
           </div>
         </motion.div>
       )}
 
-      {/* Top Control Bar - Reduced height to 30px */}
-      <div className="flex items-center justify-between gap-4 mb-3 h-[30px]">
+      {/* Top Control Bar - Increased height to 40px */}
+      <div className="flex items-center justify-between gap-4 mb-3 h-[40px]">
         {/* Left side - Volume Control */}
         <Button
           size="sm"
           variant="outline"
           onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-          className="h-[30px] px-4 text-sm font-medium border transition-all duration-200"
+          className="h-[40px] px-6 text-sm font-medium border-[6px] transition-all duration-200"
         >
-          {isMuted ? <SpeakerX size={16} /> : <SpeakerHigh size={16} />}
+          {isMuted ? <SpeakerX size={18} /> : <SpeakerHigh size={18} />}
         </Button>
 
         {/* Right side - Play/Pause and Stop buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             size="sm"
             variant="outline"
             onClick={isPlaying ? onPause : onPlay}
             disabled={!currentSong}
-            className={`h-[30px] px-6 text-sm font-medium border transition-all duration-200 ${
+            className={`h-[40px] px-8 text-sm font-medium border-[6px] transition-all duration-200 ${
               isPlaying 
-                ? 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800' 
+                ? 'bg-gray-200 hover:bg-gray-300 border-pink-200 text-gray-700' 
                 : 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800'
             }`}
           >
             {isPlaying ? (
               <>
-                <Pause size={16} weight="fill" className="mr-1" />
+                <Pause size={18} weight="fill" className="mr-2" />
                 Pause
               </>
             ) : (
               <>
-                <Play size={16} weight="fill" className="mr-1" />
+                <Play size={18} weight="fill" className="mr-2" />
                 Play
               </>
             )}
@@ -180,9 +188,9 @@ export function CompactPlayer({
             variant="outline"
             onClick={onStop}
             disabled={!currentSong}
-            className="h-[36px] px-7 text-sm font-medium bg-red-100 hover:bg-red-200 border border-red-300 text-red-800 transition-all duration-200"
+            className="h-[48px] px-10 text-sm font-medium bg-red-100 hover:bg-red-200 border-[6px] border-red-300 text-red-800 transition-all duration-200"
           >
-            <Square size={18} weight="fill" className="mr-1" />
+            <Square size={20} weight="fill" className="mr-2" />
             Stop
           </Button>
         </div>

@@ -89,9 +89,15 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         if (typeof playerRef.current.setVolume === 'function') {
           playerRef.current.setVolume(volume);
         }
+        // Start playing immediately if isPlaying is true
+        setTimeout(() => {
+          if (isPlaying && typeof playerRef.current.playVideo === 'function') {
+            playerRef.current.playVideo();
+          }
+        }, 500);
       }
     }
-  }, [song, playerReady, volume]);
+  }, [song, playerReady, volume, isPlaying]);
 
   // Update volume when it changes
   useEffect(() => {
