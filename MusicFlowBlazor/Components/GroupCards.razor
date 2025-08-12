@@ -1,0 +1,26 @@
+@using MusicFlowBlazor.Models
+
+<div class="card-grid">
+    @if (Playlists != null)
+    {
+        @foreach (var playlist in Playlists)
+        {
+            <TelerikCard>
+                <CardHeader>
+                    <CardTitle>@playlist.Name</CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <p>Songs: @playlist.Songs.Count</p>
+                </CardBody>
+                <CardActions>
+                    <TelerikButton>Play</TelerikButton>
+                </CardActions>
+            </TelerikCard>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<Playlist> Playlists { get; set; }
+}

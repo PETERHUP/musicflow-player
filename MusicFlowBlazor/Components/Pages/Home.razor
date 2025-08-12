@@ -1,0 +1,23 @@
+@page "/"
+@inject MusicFlowBlazor.Services.MusicService MusicService
+
+<PageTitle>GameDay Beats</PageTitle>
+
+<div class="header">
+    <div class="logo">
+        <span class="emoji">🎧</span>
+        <h1>GameDay Beats</h1>
+    </div>
+    <p class="subtitle">
+        Quick access music groups for game events • Click cards to play next song • Long press for playlist editor • Drag to reorder
+    </p>
+</div>
+
+<GroupCards Playlists="MusicService.Playlists" />
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await MusicService.LoadAsync();
+    }
+}
