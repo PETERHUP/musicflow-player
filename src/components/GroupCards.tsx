@@ -65,10 +65,10 @@ export function GroupCards({
 
   const getCardSize = () => {
     switch (layoutSettings.cardSize) {
-      case 'small': return 'aspect-square min-h-[120px]';
-      case 'medium': return 'aspect-square min-h-[160px]';
-      case 'large': return 'aspect-square min-h-[200px]';
-      default: return 'aspect-square min-h-[160px]';
+      case 'small': return 'aspect-square min-h-[100px]';
+      case 'medium': return 'aspect-square min-h-[140px]';
+      case 'large': return 'aspect-square min-h-[180px]';
+      default: return 'aspect-square min-h-[100px]';
     }
   };
 
@@ -252,20 +252,20 @@ export function GroupCards({
                   <Shuffle size={14} />
                 </Button>
 
-                <div className="p-4 h-full flex flex-col justify-center items-center text-center">
+                <div className="p-3 h-full flex flex-col justify-center items-center text-center">
                   {/* Group Image/Icon */}
-                  <div className="text-4xl md:text-5xl mb-3">
+                  <div className="text-3xl md:text-4xl mb-2">
                     {playlist.image || '🎵'}
                   </div>
                   
                   {/* Group Name */}
-                  <h3 className="font-bold text-lg mb-2 truncate w-full">
+                  <h3 className="font-bold text-sm md:text-base mb-1 truncate w-full">
                     {playlist.name}
                   </h3>
                   
                   {/* Progress Display */}
                   <div className="space-y-1">
-                    <div className="text-sm font-semibold">
+                    <div className="text-xs font-semibold">
                       {unplayedCount} / {totalCount}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -273,9 +273,9 @@ export function GroupCards({
                     </div>
                     
                     {/* Progress Bar */}
-                    <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                    <div className="w-full bg-muted rounded-full h-1 mt-1">
                       <div 
-                        className="bg-current h-1.5 rounded-full transition-all duration-300"
+                        className="bg-current h-1 rounded-full transition-all duration-300"
                         style={{ 
                           width: totalCount > 0 ? `${((totalCount - unplayedCount) / totalCount) * 100}%` : '0%' 
                         }}
@@ -285,8 +285,8 @@ export function GroupCards({
 
                   {/* Current Song Display */}
                   {layoutSettings.showCurrentSong && currentPlaylistId === playlist.id && currentSong && (
-                    <div className="mt-2 text-xs text-muted-foreground truncate w-full">
-                      ♪ {currentSong.title.length > 20 ? `${currentSong.title.substring(0, 20)}...` : currentSong.title}
+                    <div className="mt-1 text-xs text-muted-foreground truncate w-full">
+                      ♪ {(currentSong.customName || currentSong.title).length > 15 ? `${(currentSong.customName || currentSong.title).substring(0, 15)}...` : (currentSong.customName || currentSong.title)}
                     </div>
                   )}
                 </div>

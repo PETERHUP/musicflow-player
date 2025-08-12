@@ -23,7 +23,7 @@ function App() {
   const [appSettings, setAppSettings] = useKV<AppSettings>('app-settings', {
     layout: {
       cardsPerRow: 3,
-      cardSize: 'medium',
+      cardSize: 'small', // Make cards smaller by default
       showSongCount: true,
       showCurrentSong: true,
     },
@@ -269,11 +269,17 @@ function App() {
     });
   }, [setPlaybackState]);
 
+  const updatePlaylist = useCallback((updatedPlaylist: Playlist) => {
+    setPlaylists(current => 
+      current ? current.map(playlist => 
+        playlist.id === updatedPlaylist.id ? updatedPlaylist : playlist
+      ) : []
+    );
+  }, [setPlaylists]);
+
   const reorderGroups = useCallback((newOrder: Playlist[]) => {
     setPlaylists(newOrder);
   }, [setPlaylists]);
-
-  const handleLayoutChange = useCallback((newLayout: LayoutSettings) => {
     setAppSettings(current => ({
       ...current,
       layout: newLayout,
@@ -301,6 +307,7 @@ function App() {
         onAddSongs={addSongs}
         onCreatePlaylist={createPlaylist}
         onDeleteSong={deleteSong}
+        onUpdatePlaylist={updatePlaylist}
       />
 
       <motion.div 
@@ -350,7 +357,7 @@ function App() {
             currentSong={playbackState?.currentSong || null}
             layoutSettings={appSettings?.layout || {
               cardsPerRow: 3,
-              cardSize: 'medium',
+              cardSize: 'small',
               showSongCount: true,
               showCurrentSong: true,
             }}

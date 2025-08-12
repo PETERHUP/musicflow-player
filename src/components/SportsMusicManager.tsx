@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash, MusicNote } from '@phosphor-icons/react';
-import { Song, Playlist } from '@/lib/types';
+import { Plus, Trash, MusicNote, CheckCircle, Warning, Clock } from '@phosphor-icons/react';
+import { Song, Playlist, validateAllSongs } from '@/lib/types';
 import { extractYouTubeId, parseTimeString } from '@/lib/types';
 import { YouTubeImport } from '@/components/YouTubeImport';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ interface SportsMusicManagerProps {
   onAddSongs: (songs: Song[], playlistId: string) => void;
   onCreatePlaylist: (name: string, image?: string) => void;
   onDeleteSong: (songId: string, playlistId: string) => void;
+  onUpdatePlaylist?: (playlist: Playlist) => void;
 }
 
 const SPORTS_GROUPS = [
@@ -41,13 +42,16 @@ export function SportsMusicManager({
   onAddSongs,
   onCreatePlaylist,
   onDeleteSong,
+  onUpdatePlaylist,
 }: SportsMusicManagerProps) {
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('Goal');
   const [selectedEmoji, setSelectedEmoji] = useState('🥅');
   const [songUrl, setSongUrl] = useState('');
   const [songTitle, setSongTitle] = useState('');
+  const [songCustomName, setSongCustomName] = useState('');
   const [startTime, setStartTime] = useState('0:00');
+  const [validatingAll, setValidatingAll] = useState(false);
 
   const handleCreateGroup = () => {
     const name = selectedGroup === 'Custom' ? newGroupName : selectedGroup;
@@ -89,15 +93,80 @@ export function SportsMusicManager({
     const song: Song = {
       id: Date.now().toString(),
       title: songTitle,
-      url: videoId,
+      customName: songCustomName || '',
+      url: songUrl, // Store the full URL
       startTime: parseTimeString(startTime),
     };
 
     onAddSong(song, targetGroup.id);
     setSongUrl('');
     setSongTitle('');
+    setSongCustomName('');
     setStartTime('0:00');
     toast.success(`Added "${songTitle}" to ${targetGroup.name}`);
+  };
+
+  const handleValidateAllPlaylists = async () => {
+    setValidatingAll(true);
+    let totalValidated = 0;
+    let totalInvalid = 0;
+
+    for (const playlist of playlists) {
+      if (playlist.songs.length > 0) {
+        const validatedSongs = await validateAllSongs(playlist.songs);
+        const invalidCount = validatedSongs.filter(s => !s.isValid).length;
+        totalInvalid += invalidCount;
+        totalValidated += validatedSongs.length;
+
+        if (onUpdatePlaylist) {
+          onUpdatePlaylist({
+            ...playlist,
+            songs: validatedSongs
+          });
+        }
+      }
+    }
+
+    setValidatingAll(false);
+    
+    if (totalInvalid === 0) {
+      toast.success(`All ${totalValidated} songs validated successfully`);
+    } else {
+      toast.warning(`Validation complete: ${totalInvalid} of ${totalValidated} songs may have invalid links`);
+    }
+  };
+
+  const removeAllInvalidSongs = () => {
+    let totalRemoved = 0;
+    
+    playlists.forEach(playlist => {
+      const validSongs = playlist.songs.filter(song => song.isValid !== false);
+      const removedCount = playlist.songs.length - validSongs.length;
+      totalRemoved += removedCount;
+      
+      if (removedCount > 0 && onUpdatePlaylist) {
+        onUpdatePlaylist({
+          ...playlist,
+          songs: validSongs
+        });
+      }
+    });
+
+    if (totalRemoved === 0) {
+      toast.info('No invalid songs to remove');
+    } else {
+      toast.success(`Removed ${totalRemoved} invalid song(s) from all playlists`);
+    }
+  };
+
+  const getValidationStats = () => {
+    const allSongs = playlists.flatMap(p => p.songs);
+    const checked = allSongs.filter(s => s.lastChecked).length;
+    const valid = allSongs.filter(s => s.isValid === true).length;
+    const invalid = allSongs.filter(s => s.isValid === false).length;
+    const unchecked = allSongs.length - checked;
+    
+    return { total: allSongs.length, checked, valid, invalid, unchecked };
   };
 
   return (
@@ -112,10 +181,11 @@ export function SportsMusicManager({
       </div>
 
       <Tabs defaultValue="add-group" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="add-group">Add Group</TabsTrigger>
           <TabsTrigger value="add-song">Add Song</TabsTrigger>
           <TabsTrigger value="import">Import Playlist</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="add-group" className="space-y-4">
@@ -205,6 +275,16 @@ export function SportsMusicManager({
               </div>
 
               <div>
+                <Label htmlFor="song-custom-name">Custom Display Name (Optional)</Label>
+                <Input
+                  id="song-custom-name"
+                  value={songCustomName}
+                  onChange={(e) => setSongCustomName(e.target.value)}
+                  placeholder="Custom name for display"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="youtube-url">YouTube URL</Label>
                 <Input
                   id="youtube-url"
@@ -247,6 +327,86 @@ export function SportsMusicManager({
               onAddSongs={onAddSongs}
               onCreatePlaylist={onCreatePlaylist}
             />
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <Card className="p-4">
+            <h3 className="font-medium mb-3">Link Validation</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Check if YouTube links are valid and remove broken ones.
+            </p>
+            
+            {(() => {
+              const stats = getValidationStats();
+              return (
+                <div className="space-y-4">
+                  {/* Validation Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-secondary/30 p-3 rounded text-center">
+                      <div className="text-lg font-semibold">{stats.total}</div>
+                      <div className="text-xs text-muted-foreground">Total Songs</div>
+                    </div>
+                    <div className="bg-green-500/10 p-3 rounded text-center">
+                      <div className="text-lg font-semibold text-green-600">{stats.valid}</div>
+                      <div className="text-xs text-muted-foreground">Valid</div>
+                    </div>
+                    <div className="bg-red-500/10 p-3 rounded text-center">
+                      <div className="text-lg font-semibold text-red-600">{stats.invalid}</div>
+                      <div className="text-xs text-muted-foreground">Invalid</div>
+                    </div>
+                    <div className="bg-yellow-500/10 p-3 rounded text-center">
+                      <div className="text-lg font-semibold text-yellow-600">{stats.unchecked}</div>
+                      <div className="text-xs text-muted-foreground">Unchecked</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      onClick={handleValidateAllPlaylists}
+                      disabled={validatingAll || stats.total === 0}
+                      className="flex-1"
+                      variant="outline"
+                    >
+                      {validatingAll ? (
+                        <>
+                          <Clock size={16} className="mr-2 animate-spin" />
+                          Checking All Links...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={16} className="mr-2" />
+                          Check All Links ({stats.total})
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={removeAllInvalidSongs}
+                      disabled={stats.invalid === 0}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      <Trash size={16} className="mr-2" />
+                      Remove Invalid ({stats.invalid})
+                    </Button>
+                  </div>
+
+                  {stats.invalid > 0 && (
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded p-3">
+                      <div className="flex items-center gap-2 text-yellow-600 text-sm">
+                        <Warning size={16} />
+                        <span className="font-medium">Warning:</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {stats.invalid} song(s) may have invalid YouTube links. These songs may not play properly.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </Card>
         </TabsContent>
       </Tabs>

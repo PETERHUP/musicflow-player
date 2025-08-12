@@ -17,6 +17,7 @@ interface HamburgerMenuProps {
   onAddSongs: (songs: Song[], playlistId: string) => void;
   onCreatePlaylist: (name: string) => void;
   onDeleteSong: (songId: string, playlistId: string) => void;
+  onUpdatePlaylist?: (playlist: Playlist) => void;
 }
 
 export function HamburgerMenu({
@@ -25,6 +26,7 @@ export function HamburgerMenu({
   onAddSongs,
   onCreatePlaylist,
   onDeleteSong,
+  onUpdatePlaylist,
 }: HamburgerMenuProps) {
   return (
     <Sheet>
@@ -48,6 +50,7 @@ export function HamburgerMenu({
             onAddSongs={onAddSongs}
             onCreatePlaylist={onCreatePlaylist}
             onDeleteSong={onDeleteSong}
+            onUpdatePlaylist={onUpdatePlaylist}
           />
         </div>
       </SheetContent>

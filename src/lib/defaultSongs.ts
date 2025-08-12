@@ -11,7 +11,9 @@ export const createDefaultSong = (
   title: `${title} - ${artist}`,
   url: `https://www.youtube.com/watch?v=${videoId}`,
   startTime,
-  thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+  thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+  isValid: true, // Default songs are assumed to be valid
+  lastChecked: Date.now()
 });
 
 export const defaultPlaylists: Playlist[] = [

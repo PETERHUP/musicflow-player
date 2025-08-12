@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Song } from '@/lib/types';
+import { Song, extractYouTubeId } from '@/lib/types';
 
 interface YouTubePlayerProps {
   song: Song | null;
@@ -77,10 +77,13 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   useEffect(() => {
     if (playerRef.current && playerReady && song && typeof playerRef.current.loadVideoById === 'function') {
-      playerRef.current.loadVideoById({
-        videoId: song.url,
-        startSeconds: song.startTime,
-      });
+      const videoId = extractYouTubeId(song.url);
+      if (videoId) {
+        playerRef.current.loadVideoById({
+          videoId: videoId,
+          startSeconds: song.startTime,
+        });
+      }
     }
   }, [song, playerReady]);
 
