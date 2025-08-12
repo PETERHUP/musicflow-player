@@ -26,6 +26,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [apiReady, setApiReady] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         },
         events: {
           onReady: () => {
+            setPlayerReady(true);
             onReady();
           },
           onStateChange: (event: any) => {
@@ -70,26 +72,26 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   }, [apiReady, onReady, onEnded]);
 
   useEffect(() => {
-    if (playerRef.current && song) {
+    if (playerRef.current && playerReady && song && typeof playerRef.current.loadVideoById === 'function') {
       playerRef.current.loadVideoById({
         videoId: song.url,
         startSeconds: song.startTime,
       });
     }
-  }, [song]);
+  }, [song, playerReady]);
 
   useEffect(() => {
-    if (playerRef.current) {
-      if (isPlaying) {
+    if (playerRef.current && playerReady) {
+      if (isPlaying && typeof playerRef.current.playVideo === 'function') {
         playerRef.current.playVideo();
         
         timeUpdateIntervalRef.current = setInterval(() => {
-          if (playerRef.current && playerRef.current.getCurrentTime) {
+          if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
             const currentTime = playerRef.current.getCurrentTime();
             onTimeUpdate(currentTime);
           }
         }, 1000);
-      } else {
+      } else if (!isPlaying && typeof playerRef.current.pauseVideo === 'function') {
         playerRef.current.pauseVideo();
         if (timeUpdateIntervalRef.current) {
           clearInterval(timeUpdateIntervalRef.current);
@@ -103,7 +105,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         clearInterval(timeUpdateIntervalRef.current);
       }
     };
-  }, [isPlaying, onTimeUpdate]);
+  }, [isPlaying, playerReady, onTimeUpdate]);
 
   if (!song) {
     return (
