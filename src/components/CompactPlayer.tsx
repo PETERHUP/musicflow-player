@@ -31,36 +31,40 @@ export function CompactPlayer({
       animate={{ y: 0, opacity: 1 }}
       className="w-full"
     >
-      {/* Top Control Bar - 30px height */}
-      <div className="flex items-center justify-center gap-2 mb-3 h-[30px]">
+      {/* Top Control Bar - 90px height */}
+      <div className="flex items-center justify-center gap-4 mb-3 h-[90px]">
         <Button
-          size="sm"
-          variant={isPlaying ? "secondary" : "default"}
+          size="lg"
+          variant="outline"
           onClick={isPlaying ? onPause : onPlay}
           disabled={!currentSong}
-          className="h-[30px] px-4 text-xs font-medium"
+          className={`h-[90px] px-8 text-base font-medium border-2 transition-all duration-200 ${
+            isPlaying 
+              ? 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800' 
+              : 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800'
+          }`}
         >
           {isPlaying ? (
             <>
-              <Pause size={14} weight="fill" className="mr-1" />
+              <Pause size={32} weight="fill" className="mr-2" />
               Pause
             </>
           ) : (
             <>
-              <Play size={14} weight="fill" className="mr-1" />
+              <Play size={32} weight="fill" className="mr-2" />
               Play
             </>
           )}
         </Button>
         
         <Button
-          size="sm"
+          size="lg"
           variant="outline"
           onClick={onStop}
           disabled={!currentSong}
-          className="h-[30px] px-4 text-xs font-medium"
+          className="h-[90px] px-8 text-base font-medium bg-red-100 hover:bg-red-200 border-2 border-red-300 text-red-800 transition-all duration-200"
         >
-          <Square size={14} weight="fill" className="mr-1" />
+          <Square size={32} weight="fill" className="mr-2" />
           Stop
         </Button>
       </div>
