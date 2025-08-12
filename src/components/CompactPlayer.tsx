@@ -51,18 +51,25 @@ export function CompactPlayer({
     if (value[0] > 0 && isMuted) {
       setIsMuted(false);
     }
-    // Close the slider after volume change
-    setTimeout(() => {
-      setShowVolumeSlider(false);
-    }, 500);
+    // Don't auto-close the slider on change, let user close it manually or via timer
+  };
+
+  const toggleVolumeSlider = () => {
+    setShowVolumeSlider(!showVolumeSlider);
+    // Auto-close after 3 seconds if opened
+    if (!showVolumeSlider) {
+      setTimeout(() => {
+        setShowVolumeSlider(false);
+      }, 3000);
+    }
   };
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    // Close the slider after mute toggle
+    // Auto close slider after mute action
     setTimeout(() => {
       setShowVolumeSlider(false);
-    }, 500);
+    }, 1000);
   };
 
   const handleMicToggle = async () => {
@@ -105,41 +112,46 @@ export function CompactPlayer({
       animate={{ y: 0, opacity: 1 }}
       className="w-full"
     >
-      {/* Volume Slider Popup - Full Width */}
+      {/* Volume Slider Popup - Full Width and More Visible */}
       {showVolumeSlider && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="mb-4 p-6 bg-card border-2 border-primary/30 rounded-lg shadow-lg"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          className="fixed top-20 left-4 right-4 z-[100] p-8 bg-card/95 backdrop-blur-lg border-2 border-primary/50 rounded-xl shadow-2xl"
+          style={{ maxWidth: '600px', margin: '0 auto', left: '50%', transform: 'translateX(-50%)' }}
         >
-          <div className="flex items-center gap-4">
-            <SpeakerHigh size={24} className="text-primary flex-shrink-0" />
-            <Slider
-              value={volume}
-              onValueChange={handleVolumeChange}
-              max={100}
-              step={1}
-              className="flex-1 h-3"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleMute}
-              className="h-[40px] w-20 flex-shrink-0 border-[6px] text-sm font-medium"
-            >
-              {isMuted ? <SpeakerX size={18} /> : <SpeakerHigh size={18} />}
-            </Button>
-            <Button
-              variant={isMicActive ? "default" : "outline"}
-              size="sm"
-              onClick={handleMicToggle}
-              className={`h-[40px] w-20 flex-shrink-0 border-[6px] text-sm font-medium ${isMicActive ? 'bg-red-500 hover:bg-red-600' : ''}`}
-            >
-              <Microphone size={18} weight={isMicActive ? "fill" : "regular"} />
-            </Button>
+          <div className="flex items-center gap-6">
+            <SpeakerHigh size={32} className="text-primary flex-shrink-0" />
+            <div className="flex-1">
+              <Slider
+                value={volume}
+                onValueChange={handleVolumeChange}
+                max={100}
+                step={1}
+                className="w-full h-6 cursor-pointer"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleMute}
+                className="h-[45px] w-24 border-2 text-sm font-medium"
+              >
+                {isMuted ? <SpeakerX size={20} /> : <SpeakerHigh size={20} />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowVolumeSlider(false)}
+                className="h-[45px] w-20 border-2 text-sm font-medium"
+              >
+                ✕
+              </Button>
+            </div>
           </div>
-          <div className="text-sm text-muted-foreground mt-3 text-center font-medium">
+          <div className="text-lg text-muted-foreground mt-4 text-center font-semibold">
             Volume: {isMuted ? 0 : volume[0]}% {isMicActive && '• Microphone Active'}
           </div>
         </motion.div>
@@ -151,14 +163,23 @@ export function CompactPlayer({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+          onClick={toggleVolumeSlider}
           className="h-[40px] px-6 text-sm font-medium border-[6px] transition-all duration-200"
         >
           {isMuted ? <SpeakerX size={18} /> : <SpeakerHigh size={18} />}
         </Button>
 
-        {/* Right side - Play/Pause and Stop buttons */}
+        {/* Right side - Play/Pause, Mic, and Stop buttons */}
         <div className="flex items-center gap-3">
+          <Button
+            variant={isMicActive ? "default" : "outline"}
+            size="sm"
+            onClick={handleMicToggle}
+            className={`h-[40px] px-6 text-sm font-medium border-[6px] transition-all duration-200 ${isMicActive ? 'bg-red-500 hover:bg-red-600' : ''}`}
+          >
+            <Microphone size={18} weight={isMicActive ? "fill" : "regular"} />
+          </Button>
+          
           <Button
             size="sm"
             variant="outline"
@@ -172,12 +193,12 @@ export function CompactPlayer({
           >
             {isPlaying ? (
               <>
-                <Pause size={18} weight="fill" className="mr-2" />
+                <Pause size={20} weight="fill" className="mr-2" />
                 Pause
               </>
             ) : (
               <>
-                <Play size={18} weight="fill" className="mr-2" />
+                <Play size={20} weight="fill" className="mr-2" />
                 Play
               </>
             )}
@@ -190,7 +211,7 @@ export function CompactPlayer({
             disabled={!currentSong}
             className="h-[48px] px-10 text-sm font-medium bg-red-100 hover:bg-red-200 border-[6px] border-red-300 text-red-800 transition-all duration-200"
           >
-            <Square size={20} weight="fill" className="mr-2" />
+            <Square size={22} weight="fill" className="mr-2" />
             Stop
           </Button>
         </div>

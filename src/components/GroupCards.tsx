@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shuffle, DotsSixVertical, Settings, Edit } from '@phosphor-icons/react';
 import { Playlist, Song, LayoutSettings } from '@/lib/types';
-import { motion, Reorder } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface GroupCardsProps {
   playlists: Playlist[];
@@ -194,22 +194,26 @@ export function GroupCards({
       )}
 
       {/* Group Cards Grid */}
-      <Reorder.Group
-        axis="y"
-        values={orderedPlaylists}
-        onReorder={handleReorder}
-        className={`grid ${getGridCols()} gap-4`}
-      >
-        {orderedPlaylists.map((playlist) => {
+      <div className={`grid ${getGridCols()} gap-4`}>
+        {orderedPlaylists.map((playlist, index) => {
           const unplayedCount = getUnplayedCount(playlist);
           const totalCount = playlist.songs.length;
           
           return (
-            <Reorder.Item
+            <motion.div
               key={playlist.id}
-              value={playlist}
+              layout
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              whileHover={{ scale: 1.02 }}
+              transition={{ 
+                layout: { duration: 0.2, ease: "easeInOut" },
+                type: "spring",
+                stiffness: 600,
+                damping: 30
+              }}
               className="touch-none"
-              whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)" }}
             >
               <Card
                 className={`${getCardSize()} transition-all duration-200 hover:scale-[1.02] cursor-pointer relative group ${
@@ -291,10 +295,10 @@ export function GroupCards({
                   )}
                 </div>
               </Card>
-            </Reorder.Item>
+            </motion.div>
           );
         })}
-      </Reorder.Group>
+      </div>
 
       {orderedPlaylists.length === 0 && (
         <motion.div

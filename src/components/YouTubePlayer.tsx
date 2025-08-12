@@ -94,10 +94,22 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           if (isPlaying && typeof playerRef.current.playVideo === 'function') {
             playerRef.current.playVideo();
           }
-        }, 500);
+        }, 1000); // Increased delay to ensure video is loaded
       }
     }
-  }, [song, playerReady, volume, isPlaying]);
+  }, [song?.id, playerReady, volume]); // Changed dependency to song.id only
+
+  // Separate effect to handle immediate play when isPlaying becomes true with an existing song
+  useEffect(() => {
+    if (playerRef.current && playerReady && song && isPlaying && typeof playerRef.current.playVideo === 'function') {
+      // Small delay to ensure the player is ready
+      setTimeout(() => {
+        if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
+          playerRef.current.playVideo();
+        }
+      }, 200);
+    }
+  }, [isPlaying, song?.id, playerReady]);
 
   // Update volume when it changes
   useEffect(() => {
@@ -109,7 +121,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   useEffect(() => {
     if (playerRef.current && playerReady) {
       if (isPlaying && typeof playerRef.current.playVideo === 'function') {
-        playerRef.current.playVideo();
+        // Ensure we're actually playing the video
+        const currentState = playerRef.current.getPlayerState();
+        if (currentState !== window.YT.PlayerState.PLAYING) {
+          playerRef.current.playVideo();
+        }
         
         timeUpdateIntervalRef.current = setInterval(() => {
           if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
