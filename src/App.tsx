@@ -280,6 +280,8 @@ function App() {
   const reorderGroups = useCallback((newOrder: Playlist[]) => {
     setPlaylists(newOrder);
   }, [setPlaylists]);
+
+  const handleLayoutChange = useCallback((newLayout: LayoutSettings) => {
     setAppSettings(current => ({
       ...current,
       layout: newLayout,
