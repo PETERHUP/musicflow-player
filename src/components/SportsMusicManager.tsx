@@ -213,6 +213,8 @@ export function SportsMusicManager({
               </Button>
             </div>
           </Card>
+        </TabsContent>
+
         <TabsContent value="import" className="space-y-4">
           <Card className="p-4">
             <h3 className="font-medium mb-3">Import YouTube Playlist</h3>
