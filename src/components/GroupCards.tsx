@@ -65,22 +65,22 @@ export function GroupCards({
 
   const getCardSize = () => {
     switch (layoutSettings.cardSize) {
-      case 'small': return 'aspect-square min-h-[100px]';
-      case 'medium': return 'aspect-square min-h-[140px]';
-      case 'large': return 'aspect-square min-h-[180px]';
-      default: return 'aspect-square min-h-[100px]';
+      case 'small': return 'aspect-square min-h-[100px] max-w-[120px]';
+      case 'medium': return 'aspect-square min-h-[140px] max-w-[120px]';
+      case 'large': return 'aspect-square min-h-[180px] max-w-[120px]';
+      default: return 'aspect-square min-h-[100px] max-w-[120px]';
     }
   };
 
   const getGridCols = () => {
     switch (layoutSettings.cardsPerRow) {
-      case 1: return 'grid-cols-1';
-      case 2: return 'grid-cols-1 sm:grid-cols-2';
-      case 3: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
-      case 4: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
-      case 5: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5';
-      case 6: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6';
-      default: return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+      case 1: return 'grid-cols-1 justify-items-center';
+      case 2: return 'grid-cols-2 justify-items-center gap-4';
+      case 3: return 'grid-cols-3 justify-items-center gap-4';
+      case 4: return 'grid-cols-2 sm:grid-cols-4 justify-items-center gap-3';
+      case 5: return 'grid-cols-3 sm:grid-cols-5 justify-items-center gap-2';
+      case 6: return 'grid-cols-3 sm:grid-cols-6 justify-items-center gap-2';
+      default: return 'grid-cols-3 justify-items-center gap-4';
     }
   };
 

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, Square } from '@phosphor-icons/react';
+import { Slider } from '@/components/ui/slider';
+import { Play, Pause, Square, SpeakerHigh, SpeakerX, Microphone } from '@phosphor-icons/react';
 import { Song } from '@/lib/types';
 import { YouTubePlayer } from '@/components/YouTubePlayer';
 import { motion } from 'framer-motion';
@@ -25,48 +26,166 @@ export function CompactPlayer({
   onEnded,
   onTimeUpdate,
 }: CompactPlayerProps) {
+  const [volume, setVolume] = useState([75]);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [isMicActive, setIsMicActive] = useState(false);
+  const [wasPausedByMic, setWasPausedByMic] = useState(false);
+  const micTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  // Clean up microphone stream on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (micTimeoutRef.current) {
+        clearTimeout(micTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleVolumeChange = (value: number[]) => {
+    setVolume(value);
+    if (value[0] > 0 && isMuted) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const handleMicToggle = async () => {
+    if (!isMicActive) {
+      try {
+        // Request microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+        setIsMicActive(true);
+        
+        // Pause music if it's playing
+        if (isPlaying) {
+          setWasPausedByMic(true);
+          onPause();
+        }
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        // You could show a toast here if needed
+      }
+    } else {
+      // Stop microphone
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      setIsMicActive(false);
+      
+      // Resume music after delay if it was paused by mic
+      if (wasPausedByMic) {
+        micTimeoutRef.current = setTimeout(() => {
+          onPlay();
+          setWasPausedByMic(false);
+        }, 400);
+      }
+    }
+  };
   return (
     <motion.div
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className="w-full"
     >
-      {/* Top Control Bar - 90px height */}
-      <div className="flex items-center justify-center gap-4 mb-3 h-[90px]">
-        <Button
-          size="lg"
-          variant="outline"
-          onClick={isPlaying ? onPause : onPlay}
-          disabled={!currentSong}
-          className={`h-[90px] px-8 text-base font-medium border-2 transition-all duration-200 ${
-            isPlaying 
-              ? 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800' 
-              : 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800'
-          }`}
+      {/* Volume Slider Popup - Full Width */}
+      {showVolumeSlider && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="mb-4 p-4 bg-card border rounded-lg"
         >
-          {isPlaying ? (
-            <>
-              <Pause size={32} weight="fill" className="mr-2" />
-              Pause
-            </>
-          ) : (
-            <>
-              <Play size={32} weight="fill" className="mr-2" />
-              Play
-            </>
-          )}
-        </Button>
-        
+          <div className="flex items-center gap-4">
+            <SpeakerHigh size={20} className="text-muted-foreground flex-shrink-0" />
+            <Slider
+              value={volume}
+              onValueChange={handleVolumeChange}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleMute}
+              className="h-8 w-16 flex-shrink-0"
+            >
+              {isMuted ? <SpeakerX size={16} /> : <SpeakerHigh size={16} />}
+            </Button>
+            <Button
+              variant={isMicActive ? "default" : "outline"}
+              size="sm"
+              onClick={handleMicToggle}
+              className={`h-8 w-16 flex-shrink-0 ${isMicActive ? 'bg-red-500 hover:bg-red-600' : ''}`}
+            >
+              <Microphone size={16} weight={isMicActive ? "fill" : "regular"} />
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground mt-2 text-center">
+            Volume: {isMuted ? 0 : volume[0]}% {isMicActive && '• Microphone Active'}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Top Control Bar - Reduced height to 30px */}
+      <div className="flex items-center justify-between gap-4 mb-3 h-[30px]">
+        {/* Left side - Volume Control */}
         <Button
-          size="lg"
+          size="sm"
           variant="outline"
-          onClick={onStop}
-          disabled={!currentSong}
-          className="h-[90px] px-8 text-base font-medium bg-red-100 hover:bg-red-200 border-2 border-red-300 text-red-800 transition-all duration-200"
+          onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+          className="h-[30px] px-4 text-sm font-medium border transition-all duration-200"
         >
-          <Square size={32} weight="fill" className="mr-2" />
-          Stop
+          {isMuted ? <SpeakerX size={16} /> : <SpeakerHigh size={16} />}
         </Button>
+
+        {/* Right side - Play/Pause and Stop buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={isPlaying ? onPause : onPlay}
+            disabled={!currentSong}
+            className={`h-[30px] px-6 text-sm font-medium border transition-all duration-200 ${
+              isPlaying 
+                ? 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800' 
+                : 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800'
+            }`}
+          >
+            {isPlaying ? (
+              <>
+                <Pause size={16} weight="fill" className="mr-1" />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play size={16} weight="fill" className="mr-1" />
+                Play
+              </>
+            )}
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onStop}
+            disabled={!currentSong}
+            className="h-[36px] px-7 text-sm font-medium bg-red-100 hover:bg-red-200 border border-red-300 text-red-800 transition-all duration-200"
+          >
+            <Square size={18} weight="fill" className="mr-1" />
+            Stop
+          </Button>
+        </div>
       </div>
 
       {/* Compact Player Card */}
@@ -76,11 +195,12 @@ export function CompactPlayer({
           <div className="w-24 h-14 bg-secondary rounded overflow-hidden flex-shrink-0">
             <YouTubePlayer
               song={currentSong}
-              isPlaying={isPlaying}
+              isPlaying={isPlaying && !isMicActive}
               onEnded={onEnded}
               onReady={() => {}}
               onTimeUpdate={onTimeUpdate}
               compact={true}
+              volume={isMuted ? 0 : volume[0]}
             />
           </div>
 
@@ -90,7 +210,7 @@ export function CompactPlayer({
               {currentSong?.customName || currentSong?.title || 'No song selected'}
             </h3>
             <p className="text-xs text-muted-foreground truncate">
-              {currentSong ? 'Ready to play' : 'Select a music group to begin'}
+              {currentSong ? (isMicActive ? 'Microphone active - Music paused' : 'Ready to play') : 'Select a music group to begin'}
             </p>
           </div>
         </div>

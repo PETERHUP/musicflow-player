@@ -8,6 +8,7 @@ interface YouTubePlayerProps {
   onReady: () => void;
   onTimeUpdate: (currentTime: number) => void;
   compact?: boolean;
+  volume?: number;
 }
 
 declare global {
@@ -23,7 +24,8 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   onEnded,
   onReady,
   onTimeUpdate,
-  compact = false
+  compact = false,
+  volume = 75
 }) => {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,9 +85,20 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           videoId: videoId,
           startSeconds: song.startTime,
         });
+        // Set volume when video loads
+        if (typeof playerRef.current.setVolume === 'function') {
+          playerRef.current.setVolume(volume);
+        }
       }
     }
-  }, [song, playerReady]);
+  }, [song, playerReady, volume]);
+
+  // Update volume when it changes
+  useEffect(() => {
+    if (playerRef.current && playerReady && typeof playerRef.current.setVolume === 'function') {
+      playerRef.current.setVolume(volume);
+    }
+  }, [volume, playerReady]);
 
   useEffect(() => {
     if (playerRef.current && playerReady) {
