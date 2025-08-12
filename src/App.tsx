@@ -2,9 +2,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { Toaster } from '@/components/ui/sonner';
 import { CompactPlayer } from '@/components/CompactPlayer';
-import { GroupButtons } from '@/components/GroupButtons';
+import { GroupCards } from '@/components/GroupCards';
 import { SportsMusicManager } from '@/components/SportsMusicManager';
-import { Song, Playlist, PlaybackState, GroupOrder } from '@/lib/types';
+import { EditableGrid } from '@/components/EditableGrid';
+import { Song, Playlist, PlaybackState, LayoutSettings, AppSettings } from '@/lib/types';
 import { motion } from 'framer-motion';
 
 function App() {
@@ -18,6 +19,15 @@ function App() {
     queue: [],
     queueIndex: 0,
   });
+  const [appSettings, setAppSettings] = useKV<AppSettings>('app-settings', {
+    layout: {
+      cardsPerRow: 3,
+      cardSize: 'medium',
+      showSongCount: true,
+      showCurrentSong: true,
+    },
+  });
+  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
 
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
@@ -38,15 +48,29 @@ function App() {
     setPlaylists(current => current ? [...current, newPlaylist] : [newPlaylist]);
   }, [setPlaylists]);
 
-  const addSong = useCallback((song: Song, playlistId: string) => {
+  const addSongs = useCallback((songs: Song[], playlistId: string) => {
     setPlaylists(current => 
       current ? current.map(playlist => 
         playlist.id === playlistId 
-          ? { ...playlist, songs: [...playlist.songs, song] }
+          ? { ...playlist, songs: [...playlist.songs, ...songs] }
           : playlist
       ) : []
     );
   }, [setPlaylists]);
+
+  const updateSongs = useCallback((playlistId: string, updatedSongs: Song[]) => {
+    setPlaylists(current => 
+      current ? current.map(playlist => 
+        playlist.id === playlistId 
+          ? { ...playlist, songs: updatedSongs }
+          : playlist
+      ) : []
+    );
+  }, [setPlaylists]);
+
+  const addSong = useCallback((song: Song, playlistId: string) => {
+    addSongs([song], playlistId);
+  }, [addSongs]);
 
   const deleteSong = useCallback((songId: string, playlistId: string) => {
     setPlaylists(current => 
@@ -184,6 +208,25 @@ function App() {
     setPlaylists(newOrder);
   }, [setPlaylists]);
 
+  const handleLayoutChange = useCallback((newLayout: LayoutSettings) => {
+    setAppSettings(current => ({
+      ...current,
+      layout: newLayout,
+    }));
+  }, [setAppSettings]);
+
+  const handleEditGroup = useCallback((playlistId: string) => {
+    setEditingPlaylistId(playlistId);
+  }, []);
+
+  const closeEditGrid = useCallback(() => {
+    setEditingPlaylistId(null);
+  }, []);
+
+  const editingPlaylist = editingPlaylistId 
+    ? playlists?.find(p => p.id === editingPlaylistId) 
+    : null;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <motion.div 
@@ -228,12 +271,20 @@ function App() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <GroupButtons
+            <GroupCards
               playlists={playlists || []}
               currentPlaylistId={playbackState?.currentPlaylistId || null}
               currentSong={playbackState?.currentSong || null}
+              layoutSettings={appSettings?.layout || {
+                cardsPerRow: 3,
+                cardSize: 'medium',
+                showSongCount: true,
+                showCurrentSong: true,
+              }}
               onPlayGroup={playGroup}
               onReorderGroups={reorderGroups}
+              onLayoutChange={handleLayoutChange}
+              onEditGroup={handleEditGroup}
             />
           </motion.div>
 
@@ -246,11 +297,24 @@ function App() {
             <SportsMusicManager
               playlists={playlists || []}
               onAddSong={addSong}
+              onAddSongs={addSongs}
               onCreatePlaylist={createPlaylist}
               onDeleteSong={deleteSong}
             />
           </motion.div>
         </div>
+
+        {/* Editable Grid Modal */}
+        {editingPlaylist && (
+          <EditableGrid
+            playlist={editingPlaylist}
+            isOpen={!!editingPlaylistId}
+            onClose={closeEditGrid}
+            onUpdateSongs={updateSongs}
+            onAddSong={addSong}
+            onDeleteSong={deleteSong}
+          />
+        )}
       </motion.div>
 
       <Toaster position="bottom-right" />

@@ -25,6 +25,11 @@
 - **Why it matters**: Reduces screen clutter during games, shows current song clearly
 - **Success criteria**: Player remains visible and accessible while taking minimal screen space
 
+### Customizable Card Layout
+- **What it does**: Music groups displayed as cards with configurable grid layout (1-6 columns), card sizes (small/medium/large), and display options
+- **Why it matters**: Different venues and screen sizes need different layouts - allows optimization for specific setups
+- **Success criteria**: Layout persists between sessions, responsive across devices, intuitive controls
+
 ### Drag-and-Drop Group Management
 - **What it does**: Music groups can be reordered by dragging, allowing customization of priority/frequency
 - **Why it matters**: Different sports/teams have different priorities - hockey might prioritize "Goal" while basketball might prioritize "Timeout"
@@ -34,6 +39,16 @@
 - **What it does**: Each group button plays the next song in sequence, with optional shuffle mode per group
 - **Why it matters**: No time to browse songs during live games - immediate response required
 - **Success criteria**: <200ms response time from click to music start
+
+### YouTube Playlist Import
+- **What it does**: Import entire YouTube playlists with song selection, default start times, and target group assignment
+- **Why it matters**: Teams often have existing playlists - importing saves setup time and ensures familiar music
+- **Success criteria**: Successfully imports playlists, handles selection of specific songs, applies consistent start times
+
+### Editable Song Grid
+- **What it does**: Dedicated interface for managing songs within groups - edit titles, URLs, start times, and delete songs in a table format
+- **Why it matters**: Song management needs to be efficient and clear - separate interface prevents accidental changes during games
+- **Success criteria**: In-line editing works smoothly, changes save reliably, provides external link access
 
 ### Music Group Creation & Management
 - **What it does**: Create themed groups (Goal, Penalty, Warmup, etc.) and add YouTube songs with custom start times

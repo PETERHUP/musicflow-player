@@ -10,12 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash, MusicNote } from '@phosphor-icons/react';
 import { Song, Playlist } from '@/lib/types';
 import { extractYouTubeId, parseTimeString } from '@/lib/types';
+import { YouTubeImport } from '@/components/YouTubeImport';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
 interface SportsMusicManagerProps {
   playlists: Playlist[];
   onAddSong: (song: Song, playlistId: string) => void;
+  onAddSongs: (songs: Song[], playlistId: string) => void;
   onCreatePlaylist: (name: string) => void;
   onDeleteSong: (songId: string, playlistId: string) => void;
 }
@@ -35,6 +37,7 @@ const SPORTS_GROUPS = [
 export function SportsMusicManager({
   playlists,
   onAddSong,
+  onAddSongs,
   onCreatePlaylist,
   onDeleteSong,
 }: SportsMusicManagerProps) {
@@ -106,9 +109,10 @@ export function SportsMusicManager({
       </div>
 
       <Tabs defaultValue="add-group" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="add-group">Add Group</TabsTrigger>
           <TabsTrigger value="add-song">Add Song</TabsTrigger>
+          <TabsTrigger value="import">Import Playlist</TabsTrigger>
         </TabsList>
 
         <TabsContent value="add-group" className="space-y-4">
@@ -208,6 +212,18 @@ export function SportsMusicManager({
                 Add Song
               </Button>
             </div>
+          </Card>
+        <TabsContent value="import" className="space-y-4">
+          <Card className="p-4">
+            <h3 className="font-medium mb-3">Import YouTube Playlist</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Import songs from a YouTube playlist. You can select which songs to import and set a default start time.
+            </p>
+            <YouTubeImport
+              playlists={playlists}
+              onAddSongs={onAddSongs}
+              onCreatePlaylist={onCreatePlaylist}
+            />
           </Card>
         </TabsContent>
       </Tabs>
